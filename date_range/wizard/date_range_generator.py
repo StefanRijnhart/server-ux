@@ -24,25 +24,53 @@ class DateRangeGenerator(models.TransientModel):
               "\"'FY%s' % date_start.strftime('%Y%m%d')\"\nYou can "
               "use the Date types 'date_end' and 'date_start', as well as "
               "the 'index' variable."))
-    name_prefix = fields.Char('Range name prefix')
+    name_prefix = fields.Char(
+        "Range name prefix",
+        compute="_compute_name_prefix",
+        readonly=False,
+        store=True,
+    )
     range_name_preview = fields.Char(compute="_compute_range_name_preview")
-    date_start = fields.Date("Start date", required=True)
-    date_end = fields.Date("End date")
+    date_start = fields.Date(
+        "Start date",
+        compute="_compute_date_start",
+        readonly=False,
+        store=True,
+        required=True,
+    )
+    date_end = fields.Date("End date", compute="_compute_date_end", readonly=False)
     type_id = fields.Many2one(
         comodel_name='date.range.type', string='Type', required=True,
         domain="['|', ('company_id', '=', company_id), "
                "('company_id', '=', False)]", ondelete='cascade')
     company_id = fields.Many2one(
         comodel_name='res.company', string='Company',
-        default=_default_company)
-    unit_of_time = fields.Selection([
-        (str(YEARLY), 'years'),
-        (str(MONTHLY), 'months'),
-        (str(WEEKLY), 'weeks'),
-        (str(DAILY), 'days')], required=True)
-    duration_count = fields.Integer('Duration', required=True)
+        default=_default_company,
+        compute="_compute_company_id",
+        readonly=False,
+        store=True,
+    )
+    unit_of_time = fields.Selection(
+        [
+            (str(YEARLY), 'years'),
+            (str(MONTHLY), 'months'),
+            (str(WEEKLY), 'weeks'),
+            (str(DAILY), 'days'),
+        ],
+        compute="_compute_unit_of_time",
+        readonly=False,
+        store=True,
+        required=True
+    )
     count = fields.Integer(
-        string="Number of ranges to generate", required=True)
+        string="Number of ranges to generate")
+    duration_count = fields.Integer(
+        "Duration",
+        compute="_compute_duration_count",
+        readonly=False,
+        store=True,
+        required=True,
+    )
 
     @api.onchange("date_end")
     def onchange_date_end(self):
@@ -153,7 +181,7 @@ class DateRangeGenerator(models.TransientModel):
                         preview = names[0]
             wiz.range_name_preview = preview
 
-    def _compute_date_ranges(self, batch=False):
+    def _generate_date_ranges(self, batch=False):
         """Actually generate the date ranges."""
         self.ensure_one()
         vals = self._generate_intervals(batch=batch)
@@ -172,20 +200,37 @@ class DateRangeGenerator(models.TransientModel):
                 'company_id': self.company_id.id})
         return date_ranges
 
-    @api.onchange("type_id")
-    def _onchange_type_id(self):
-        """Take defaults from the type_id"""
-        if not self.type_id:
-            return
-        self.company_id = self.type_id.company_id
+    @api.depends("type_id")
+    def _compute_company_id(self):
+        if self.type_id:
+            self.company_id = self.type_id.company_id
+        else:
+            self.company_id = self.env.company
+
+    @api.depends("type_id")
+    def _compute_name_expr(self):
         if self.type_id.name_expr:
             self.name_expr = self.type_id.name_expr
+
+    @api.depends("type_id")
+    def _compute_name_prefix(self):
         if self.type_id.name_prefix:
             self.name_prefix = self.type_id.name_prefix
+
+    @api.depends("type_id")
+    def _compute_duration_count(self):
         if self.type_id.duration_count:
             self.duration_count = self.type_id.duration_count
+
+    @api.depends("type_id")
+    def _compute_unit_of_time(self):
         if self.type_id.unit_of_time:
             self.unit_of_time = self.type_id.unit_of_time
+
+    @api.depends("type_id")
+    def _compute_date_start(self):
+        if not self.type_id:
+            return
         last = self.env["date.range"].search(
             [("type_id", "=", self.type_id.id)],
             order="date_end desc", limit=1)
@@ -196,6 +241,11 @@ class DateRangeGenerator(models.TransientModel):
             self.date_start = self.type_id.autogeneration_date_start
         else:  # default to the beginning of the current year
             self.date_start = today.replace(day=1, month=1)
+
+    @api.depends("date_start")
+    def _compute_date_end(self):
+        if not self.type_id or not self.date_start:
+            return
         if (self.type_id.autogeneration_unit and
                 self.type_id.autogeneration_count):
             key = {
@@ -204,6 +254,7 @@ class DateRangeGenerator(models.TransientModel):
                 str(WEEKLY): "weeks",
                 str(DAILY): "days",
             }[self.type_id.autogeneration_unit]
+            today = fields.Date.context_today(self)
             date_end = today + relativedelta(
                 **{key: self.type_id.autogeneration_count})
             if date_end > self.date_start:
@@ -228,7 +279,7 @@ class DateRangeGenerator(models.TransientModel):
 
     @api.multi
     def action_apply(self, batch=False):
-        date_ranges = self._compute_date_ranges(batch=batch)
+        date_ranges = self._generate_date_ranges(batch=batch)
         if date_ranges:
             for dr in date_ranges:
                 self.env['date.range'].create(dr)
