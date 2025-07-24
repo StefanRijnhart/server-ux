@@ -28,9 +28,14 @@ Base Menu Visibility Restriction
 
 |badge1| |badge2| |badge3| |badge4| |badge5|
 
-This addon lets you assign "excluded groups" to menu items. If a user
-belongs to a group that is assigned to a menu item as an excluded group,
-the user will not be able to see the menu item.
+This addon lets you apply strict control over which user groups have
+access to which menus. By itself, Odoo let's you restrict menu's to
+specific groups. This addon adds to ways to further limit menu access
+based on user groups:
+
+-  You can block groups to access a specific menu.
+-  You can restrict access for a specific group to all menu items except
+   one or more allowed menus.
 
 **Table of contents**
 
@@ -40,13 +45,25 @@ the user will not be able to see the menu item.
 Usage
 =====
 
-To use this module, you need to:
+To restrict access to a specific menu item to one or more groups, you
+need to:
 
 1. Activate the developer mode
 2. Go to *Settings > Technical > User interface > Menu Items*.
 3. Search for any menu and edit it.
 4. Update "Excluded groups" with one group.
 5. Login with a user of that group, and you won't see such menu.
+
+To allow access of a specific group to only a specific set of menu
+items, you need to:
+
+1. Activate the developer mode
+2. Go to *Settings > Technical > Users & Companies > Groups*.
+3. Search for any group and edit it.
+4. Update "Strict Menu Access" with one or more menus.
+5. The menu path required to access the configured menu will be added
+   automatically.
+6. Login with a user of that group, and you will only see those menus.
 
 You can try with demo data for the menu Apps > App Store and user demo.
 
@@ -71,12 +88,13 @@ Authors
 Contributors
 ------------
 
-- `Tecnativa <https://www.tecnativa.com>`__:
+-  `Tecnativa <https://www.tecnativa.com>`__:
 
-  - Víctor Martínez
+   -  Víctor Martínez
 
-- Dhara Solanki <dhara.solanki@initos.com>
-- Nedas Žilinskas <nedas.zilinskas@avoin.systems>
+-  Dhara Solanki <dhara.solanki@initos.com>
+-  Nedas Žilinskas <nedas.zilinskas@avoin.systems>
+-  Stefan Rijnhart <stefan@opener.amsterdam>
 
 Maintainers
 -----------

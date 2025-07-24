@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_groups_form" model="ir.ui.view">
+        <field name="inherit_id" ref="base.view_groups_form" />
+        <field name="model">res.groups</field>
+        <field name="priority" eval="199" />
+        <field name="arch" type="xml">
+            <!-- Move the standard menus field into a group to clarify its function -->
+            <page name="menus" position="inside">
+                <group name="odoo_menu_access" string="Standard Odoo Menu Access" />
+            </page>
+            <group name="odoo_menu_access" position="inside">
+                <field name="menu_access" position="move" />
+            </group>
+            <field name="menu_access" position="attributes">
+                <attribute name="nolabel">1</attribute>
+            </field>
+            <group name="odoo_menu_access" position="after">
+                <group name="strict_menu_access" string="Strict Menu Access">
+                    <field name="included_menu_ids" nolabel="1">
+                        <list>
+                            <field name="complete_name" string="Menu" />
+                        </list>
+                    </field>
+                </group>
+            </group>
+        </field>
+    </record>
+</odoo>
