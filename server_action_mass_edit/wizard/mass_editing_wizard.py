@@ -70,6 +70,9 @@ class MassEditingWizard(models.TransientModel):
         return res
 
     def onchange(self, values, field_names, fields_spec):
+        # Make sure the values passed to the super cover the dynamic fields.
+        # No onchanges are defined, but Odoo will call the onchange with empty
+        # values for all fields when opening the wizard form view.
         first_call = not field_names
         if first_call:
             field_names = [fname for fname in values if fname != "id"]
@@ -90,8 +93,9 @@ class MassEditingWizard(models.TransientModel):
             values["selection__" + line.field_id.name] = "ignore"
             values[line.field_id.name] = False
 
+            # Make sure there is an entry for the default value retrieved above.
             dynamic_fields["selection__" + line.field_id.name] = fields.Selection(
-                [('ignore', _("Don't touch"))], default="ignore"
+                [("ignore", _("Don't touch"))], default="ignore"
             )
             dynamic_fields[line.field_id.name] = fields.Text([()], default=False)
 
